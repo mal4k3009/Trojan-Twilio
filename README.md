@@ -25,7 +25,7 @@ A WhatsApp Business messaging frontend that integrates with Supabase for message
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
    # n8n Webhook URL for sending WhatsApp messages
-   VITE_N8N_WEBHOOK_URL=https://n8n.srv954870.hstgr.cloud/webhook/559d6fbe-b079-4e4d-acda-1a8868b6ed4f
+   VITE_N8N_WEBHOOK_URL=https://n8n.srv954870.hstgr.cloud/webhook/a1e96bf6-640b-41eb-9c59-73e09631e08d
    ```
 
 3. **Start Development Server**:

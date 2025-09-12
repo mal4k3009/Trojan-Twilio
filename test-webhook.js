@@ -1,5 +1,5 @@
 // Test script to verify n8n webhook integration
-const WEBHOOK_URL = 'https://n8n.srv954870.hstgr.cloud/webhook/559d6fbe-b079-4e4d-acda-1a8868b6ed4f';
+const WEBHOOK_URL = 'https://n8n.srv954870.hstgr.cloud/webhook/a1e96bf6-640b-41eb-9c59-73e09631e08d';
 
 async function testWebhook() {
     try {
