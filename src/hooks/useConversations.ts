@@ -56,10 +56,11 @@ export const useConversations = (): UseConversationsReturn => {
     setLoading(true)
     
     try {
-      // First verify we can access the database
+      // First verify we can access the database by trying to fetch a single record
       const { data, error } = await supabase
         .from('ConversationalMemory')
-        .select('count()')
+        .select('id')
+        .limit(1)
       
       if (error) {
         console.error('❌ Database access error:', error)
@@ -67,7 +68,7 @@ export const useConversations = (): UseConversationsReturn => {
         return
       }
       
-      console.log('✅ Database connection successful, found count:', data)
+      console.log('✅ Database connection successful, sample data:', data)
       
       // Now fetch the full data
       await fetchData()
