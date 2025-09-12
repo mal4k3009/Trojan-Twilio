@@ -93,12 +93,12 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             message: '✅ Message sent successfully!'
           });
           
-          // Clear the input
+          // Clear the input immediately
           setNewMessage('');
           
-          // Notify parent component to refresh messages
+          // Refresh messages immediately
           if (onMessageSent) {
-            console.log('🔄 Triggering message refresh...');
+            console.log('🔄 Refreshing messages immediately...');
             onMessageSent();
           }
         } else {

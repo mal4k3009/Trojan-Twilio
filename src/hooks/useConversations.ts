@@ -56,21 +56,8 @@ export const useConversations = (): UseConversationsReturn => {
     setLoading(true)
     
     try {
-      // First verify we can access the database by trying to fetch a single record
-      const { data, error } = await supabase
-        .from('ConversationalMemory')
-        .select('id')
-        .limit(1)
-      
-      if (error) {
-        console.error('❌ Database access error:', error)
-        setError(`Database access error: ${error.message}`)
-        return
-      }
-      
-      console.log('✅ Database connection successful, sample data:', data)
-      
-      // Now fetch the full data
+      // Skip the connection test and go straight to fetching data
+      // This is faster and more reliable
       await fetchData()
     } catch (err) {
       console.error('❌ Refresh error:', err)

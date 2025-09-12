@@ -22,6 +22,10 @@ export class DatabaseService {
       
       if (data && data.length > 0) {
         console.log(`✅ Found ${data.length} conversations in ConversationalMemory:`, data);
+        // Log the most recent conversation to help debug
+        if (data.length > 0) {
+          console.log('📱 Most recent conversation:', data[0]);
+        }
         return data;
       } else {
         console.log('📭 No conversations found in ConversationalMemory table');
@@ -123,16 +127,21 @@ export class DatabaseService {
     
     console.log(`Clean customer phone: ${cleanCustomerPhone}`)
     
-    // Filter conversations for this customer
+    // Filter conversations for this customer (both directions)
     const customerConversations = conversations.filter(conv => {
       const cleanSender = (conv.sender || '').replace('whatsapp:', '').replace(/\s+/g, '')
       const cleanRecipient = (conv.recipient || '').replace('whatsapp:', '').replace(/\s+/g, '')
       
-      // Match if customer is the sender (customer sends to business)
-      const isMatch = cleanSender === cleanCustomerPhone
+      // Match if customer is either sender OR recipient
+      const isCustomerSender = cleanSender === cleanCustomerPhone
+      const isCustomerRecipient = cleanRecipient === cleanCustomerPhone
+      const isMatch = isCustomerSender || isCustomerRecipient
       
       if (isMatch) {
         console.log(`✅ Matched conversation for ${cleanCustomerPhone}:`, conv)
+        console.log(`📱 Direction: ${isCustomerSender ? 'Customer→Business' : 'Business→Customer'}`)
+        console.log(`📱 Sender message: "${conv['sender message']}"`)
+        console.log(`📱 Recipient message: "${conv['recipient message']}"`)
       }
       
       return isMatch
@@ -147,33 +156,45 @@ export class DatabaseService {
       const customerId = this.getCustomerIdByPhone(cleanCustomerPhone)
       console.log(`Processing conversation for customer ID ${customerId}:`, conv)
       
-      // Add sender message (from customer to business)
-      const senderMessage = conv['sender message'] || conv.message || ''
+      const cleanSender = (conv.sender || '').replace('whatsapp:', '').replace(/\s+/g, '')
+      const cleanRecipient = (conv.recipient || '').replace('whatsapp:', '').replace(/\s+/g, '')
+      
+      // Determine message direction
+      const isCustomerSender = cleanSender === cleanCustomerPhone
+      const isCustomerRecipient = cleanRecipient === cleanCustomerPhone
+      
+      // Add sender message
+      const senderMessage = conv['sender message'] || ''
       if (senderMessage && senderMessage.trim()) {
-        console.log(`Adding sender message from customer: ${senderMessage}`)
+        console.log(`Adding sender message: "${senderMessage}" (from ${isCustomerSender ? 'customer' : 'business'})`)
         
         messages.push({
           id: conv.id * 2, // Ensure unique ID
           customerId: customerId,
           text: senderMessage,
           timestamp: conv.created_at,
-          isFromCustomer: true, // Sender message is always from customer
+          isFromCustomer: isCustomerSender, // True if customer sent it
           status: 'read' as const,
           messageType: 'text' as const
         })
       }
       
-      // Add recipient message (from business to customer)
+      // Add recipient message
       const recipientMessage = conv['recipient message'] || ''
       if (recipientMessage && recipientMessage.trim()) {
-        console.log(`Adding recipient message from business: ${recipientMessage}`)
+        // For recipient message, the direction is opposite of who the recipient is
+        // If customer is recipient, then business sent it (isFromCustomer = false)
+        // If business is recipient, then customer sent it (isFromCustomer = true)
+        const isFromCustomer = !isCustomerRecipient
+        
+        console.log(`Adding recipient message: "${recipientMessage}" (from ${isFromCustomer ? 'customer' : 'business'})`)
         
         messages.push({
           id: conv.id * 2 + 1, // Ensure unique ID
           customerId: customerId,
           text: recipientMessage,
           timestamp: conv.created_at,
-          isFromCustomer: false, // Recipient message is always from business
+          isFromCustomer: isFromCustomer,
           status: 'read' as const,
           messageType: 'text' as const
         })
@@ -331,6 +352,22 @@ export class DatabaseService {
       // Clean and format phone numbers consistently
       const cleanCustomerPhone = customerPhone.replace('whatsapp:', '').replace(/\s+/g, '')
       const businessPhone = '+15557781885' // Your WhatsApp Business number
+      
+      // Check for recent duplicate messages to prevent spam
+      const recentTime = new Date(Date.now() - 5000).toISOString(); // 5 seconds ago
+      const { data: recentMessages } = await supabase
+        .from('ConversationalMemory')
+        .select('*')
+        .eq('sender', businessPhone)
+        .eq('recipient', cleanCustomerPhone)
+        .eq('recipient message', message)
+        .gte('created_at', recentTime)
+        .limit(1);
+      
+      if (recentMessages && recentMessages.length > 0) {
+        console.log('⚠️ Duplicate message detected, skipping save');
+        return true; // Return true since the message already exists
+      }
       
       const messageData = {
         sender: businessPhone, // Business sends the message

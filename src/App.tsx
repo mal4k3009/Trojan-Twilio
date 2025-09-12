@@ -8,6 +8,7 @@ import BulkMessage from './components/BulkMessage';
 import Contacts from './components/Contacts';
 import { useConversations } from './hooks/useConversations';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { Message } from './types';
 
 type ViewType = 'dashboard' | 'chat' | 'bulk' | 'contacts';
 
@@ -54,6 +55,12 @@ function App() {
   };
 
   const handleRefresh = async () => {
+    await refreshData();
+  };
+
+  const handleMessageSent = async () => {
+    // Refresh data after a message is sent
+    console.log('🔄 Refreshing data after message sent...');
     await refreshData();
   };
 
@@ -187,7 +194,7 @@ function App() {
               customer={selectedCustomer}
               messages={customerMessages}
               onToggleSidebar={toggleSidebar}
-              onMessageSent={refreshData}
+              onMessageSent={handleMessageSent}
             />
           )}
         </main>
