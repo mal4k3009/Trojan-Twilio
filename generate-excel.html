@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Sample Excel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Generate Sample Excel File</h1>
+    <button onclick="generateExcel()">Generate Excel File</button>
+    
+    <script>
+        function generateExcel() {
+            // Create sample data with p: prefix
+            const sampleData = [
+                ['Name', 'Phone'],
+                ['John Doe', 'p:+1234567890'],
+                ['Jane Smith', 'p:+1987654321'],
+                ['Bob Johnson', 'p:+1555123456'],
+                ['Alice Brown', 'p:+1444333222'],
+                ['Charlie Wilson', 'p:+1777888999']
+            ];
+            
+            // Create workbook and worksheet
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.aoa_to_sheet(sampleData);
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Contacts');
+            
+            // Download the file
+            XLSX.writeFile(workbook, 'sample-contacts.xlsx');
+            
+            console.log('✅ Sample Excel file generated!');
+        }
+    </script>
+</body>
+</html>
