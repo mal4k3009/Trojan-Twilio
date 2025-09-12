@@ -1,33 +1,35 @@
-import { supabase, ConversationMemory, ChatHistory } from '../lib/supabase'
+import { supabase, ConversationalMemory, ChatHistory } from '../lib/supabase'
 import { Customer, Message } from '../types'
 
 // Service to interact with Supabase database
 export class DatabaseService {
   
-  // Fetch all conversations from ConversationMemory table
-  static async getConversations(): Promise<ConversationMemory[]> {
+  // Fetch all conversations from ConversationalMemory table
+  static async getConversations(): Promise<ConversationalMemory[]> {
     try {
-      // Try different table name variations
-      const tableNames = ['ConversationMemory', 'conversationmemory', 'conversation_memory'];
+      console.log('🔍 Fetching conversations from ConversationalMemory table...')
       
-      for (const tableName of tableNames) {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (!error && data) {
-          console.log(`✅ Found data in table: ${tableName}`, data);
-          return data || [];
-        } else if (error) {
-          console.log(`❌ Error with table ${tableName}:`, error.message);
-        }
+      const { data, error } = await supabase
+        .from('ConversationalMemory')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error fetching from ConversationalMemory:', error.message);
+        console.error('Error details:', error);
+        return [];
       }
       
-      console.warn('No valid table found with any naming variation');
-      return [];
+      if (data && data.length > 0) {
+        console.log(`✅ Found ${data.length} conversations in ConversationalMemory:`, data);
+        return data;
+      } else {
+        console.log('📭 No conversations found in ConversationalMemory table');
+        return [];
+      }
+      
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      console.error('💥 Unexpected error fetching conversations:', error);
       return [];
     }
   }
@@ -62,14 +64,27 @@ export class DatabaseService {
     const customerMap = new Map<string, Customer>()
     
     conversations.forEach((conv) => {
-      // Consider both sender and recipient as potential customers
-      // The business number is likely the recipient, so sender is the customer
+      console.log('Processing conversation:', conv)
+      
+      // Check both sender and recipient to identify customers
+      // Business number is the recipient (+15557781885), customer is sender
       const customerPhone = conv.sender
+      const businessPhone = conv.recipient
       
       // Skip if sender is null or empty
       if (!customerPhone || !customerPhone.trim()) {
         console.warn('Skipping conversation with null/empty sender:', conv);
         return;
+      }
+      
+      // Only process if this is a customer phone (not the business phone)
+      // Business phone is +15557781885, so we want to process customer senders
+      const isBusinessNumber = customerPhone.includes('+15557781885') || 
+                              customerPhone.includes('15557781885')
+      
+      if (isBusinessNumber) {
+        console.log('Skipping business number as customer:', customerPhone)
+        return
       }
       
       if (!customerMap.has(customerPhone)) {
@@ -85,6 +100,8 @@ export class DatabaseService {
           isOnline: this.isRecentActivity(conv.created_at),
           unreadCount: 0 // We'll calculate this separately
         })
+        
+        console.log('Added customer:', customerPhone, 'with name:', name)
       }
     })
     
@@ -102,12 +119,23 @@ export class DatabaseService {
     
     // Clean phone number for comparison (remove whatsapp: prefix if present)
     const cleanCustomerPhone = customerPhone.replace('whatsapp:', '').replace(/\s+/g, '')
+    const businessPhone = '+15557781885'.replace(/\s+/g, '') // Updated to match your actual business number
+    
+    console.log(`Clean customer phone: ${cleanCustomerPhone}`)
     
     // Filter conversations for this customer
     const customerConversations = conversations.filter(conv => {
-      const cleanSender = conv.sender?.replace('whatsapp:', '').replace(/\s+/g, '') || ''
-      const cleanRecipient = conv.recipient?.replace('whatsapp:', '').replace(/\s+/g, '') || ''
-      return cleanSender === cleanCustomerPhone || cleanRecipient === cleanCustomerPhone
+      const cleanSender = (conv.sender || '').replace('whatsapp:', '').replace(/\s+/g, '')
+      const cleanRecipient = (conv.recipient || '').replace('whatsapp:', '').replace(/\s+/g, '')
+      
+      // Match if customer is the sender (customer sends to business)
+      const isMatch = cleanSender === cleanCustomerPhone
+      
+      if (isMatch) {
+        console.log(`✅ Matched conversation for ${cleanCustomerPhone}:`, conv)
+      }
+      
+      return isMatch
     })
     
     console.log(`Filtered conversations for ${customerPhone}:`, customerConversations)
@@ -116,41 +144,39 @@ export class DatabaseService {
     const messages: Message[] = []
     
     customerConversations.forEach((conv) => {
-      // Check if this conversation has sender message or just message field
-      const messageText = conv['sender message'] || conv.message || ''
+      const customerId = this.getCustomerIdByPhone(cleanCustomerPhone)
+      console.log(`Processing conversation for customer ID ${customerId}:`, conv)
       
-      if (messageText && messageText.trim()) {
-        const cleanSender = conv.sender?.replace('whatsapp:', '').replace(/\s+/g, '') || ''
-        const isFromCustomer = cleanSender === cleanCustomerPhone
+      // Add sender message (from customer to business)
+      const senderMessage = conv['sender message'] || conv.message || ''
+      if (senderMessage && senderMessage.trim()) {
+        console.log(`Adding sender message from customer: ${senderMessage}`)
         
         messages.push({
           id: conv.id * 2, // Ensure unique ID
-          customerId: this.getCustomerIdByPhone(cleanCustomerPhone),
-          text: messageText,
-          timestamp: conv.created_at, // Store full timestamp for calculations
-          isFromCustomer: isFromCustomer,
+          customerId: customerId,
+          text: senderMessage,
+          timestamp: conv.created_at,
+          isFromCustomer: true, // Sender message is always from customer
           status: 'read' as const,
           messageType: 'text' as const
         })
       }
       
-      // Add recipient message if it exists (this would be the AI/business response)
-      if (conv['recipient message']) {
-        const recipientMessage = conv['recipient message']
-        if (recipientMessage && recipientMessage.trim()) {
-          const cleanRecipient = conv.recipient?.replace('whatsapp:', '').replace(/\s+/g, '') || ''
-          const isFromCustomer = cleanRecipient === cleanCustomerPhone
-          
-          messages.push({
-            id: conv.id * 2 + 1, // Ensure unique ID
-            customerId: this.getCustomerIdByPhone(cleanCustomerPhone),
-            text: recipientMessage,
-            timestamp: conv.created_at, // Store full timestamp for calculations
-            isFromCustomer: isFromCustomer,
-            status: 'read' as const,
-            messageType: 'text' as const
-          })
-        }
+      // Add recipient message (from business to customer)
+      const recipientMessage = conv['recipient message'] || ''
+      if (recipientMessage && recipientMessage.trim()) {
+        console.log(`Adding recipient message from business: ${recipientMessage}`)
+        
+        messages.push({
+          id: conv.id * 2 + 1, // Ensure unique ID
+          customerId: customerId,
+          text: recipientMessage,
+          timestamp: conv.created_at,
+          isFromCustomer: false, // Recipient message is always from business
+          status: 'read' as const,
+          messageType: 'text' as const
+        })
       }
     })
     
@@ -167,8 +193,52 @@ export class DatabaseService {
     const customers = await this.getCustomers()
     const messagesMap: { [customerId: number]: Message[] } = {}
     
+    console.log(`Getting messages for ${customers.length} customers`)
+    
+    if (customers.length === 0) {
+      console.log('⚠️ No customers found, checking for raw conversations')
+      
+      // If no customers were found through regular means, try to extract them from raw conversations
+      const conversations = await this.getConversations()
+      
+      if (conversations.length > 0) {
+        console.log('📝 Found conversations, creating customers manually')
+        
+        // Extract unique sender/recipient pairs to create customers
+        const phoneNumbers = new Set<string>()
+        
+        conversations.forEach(conv => {
+          // Add sender as customer (if not business number)
+          if (conv.sender && !conv.sender.includes('+15557781885')) {
+            phoneNumbers.add(conv.sender)
+          }
+          // Don't add recipient as it's the business number
+        })
+        
+        console.log('📞 Found phone numbers:', Array.from(phoneNumbers))
+        
+        // Create messages for each phone number
+        for (const phone of phoneNumbers) {
+          if (!phone.trim()) continue
+          
+          const customerId = this.getCustomerIdByPhone(phone)
+          const messages = await this.getMessagesForCustomer(phone)
+          
+          if (messages.length > 0) {
+            console.log(`📱 Adding ${messages.length} messages for ${phone} (ID: ${customerId})`)
+            messagesMap[customerId] = messages
+          }
+        }
+      }
+      
+      return messagesMap
+    }
+    
+    // Regular case - we have customers, get their messages
     for (const customer of customers) {
+      console.log(`Getting messages for customer ${customer.name} (${customer.phone})`)
       const messages = await this.getMessagesForCustomer(customer.phone)
+      console.log(`Found ${messages.length} messages for customer ${customer.name}`)
       messagesMap[customer.id] = messages
     }
     
@@ -260,12 +330,12 @@ export class DatabaseService {
     try {
       // Clean and format phone numbers consistently
       const cleanCustomerPhone = customerPhone.replace('whatsapp:', '').replace(/\s+/g, '')
-      const businessPhone = '+918487058582' // Your WhatsApp Business number
+      const businessPhone = '+15557781885' // Your WhatsApp Business number
       
       const messageData = {
-        sender: businessPhone,
-        recipient: cleanCustomerPhone,
-        'sender message': message, // Use the same format as existing data
+        sender: businessPhone, // Business sends the message
+        recipient: cleanCustomerPhone, // To the customer
+        'recipient message': message, // This is the business's reply message
         created_at: new Date().toISOString()
       };
 
@@ -273,7 +343,7 @@ export class DatabaseService {
 
       // Try the exact table name from the database
       const { data, error } = await supabase
-        .from('ConversationMemory')
+        .from('ConversationalMemory')
         .insert([messageData])
         .select();
       
@@ -286,7 +356,7 @@ export class DatabaseService {
       }
 
       if (data && data.length > 0) {
-        console.log('✅ Message saved successfully to ConversationMemory:', data);
+        console.log('✅ Message saved successfully to ConversationalMemory:', data);
         return true;
       } else {
         console.warn('⚠️ No data returned from insert operation');
@@ -406,19 +476,19 @@ export class DatabaseService {
       }
 
       if (savedCount === 0) {
-        // If no existing table worked, try to save to ConversationMemory as a fallback
+        // If no existing table worked, try to save to ConversationalMemory as a fallback
         // This creates a conversation entry for each contact
         console.log('📝 Fallback: Saving contacts as conversation entries...');
         
         const conversationData = contacts.map(contact => ({
           sender: contact.phone,
-          recipient: '+918487058582', // Business phone
+          recipient: '+15557781885', // Business phone
           'sender message': `Contact imported: ${contact.name} (${contact.source})`,
           created_at: new Date().toISOString()
         }));
 
         const { data, error } = await supabase
-          .from('ConversationMemory')
+          .from('ConversationalMemory')
           .insert(conversationData)
           .select();
         
@@ -427,7 +497,7 @@ export class DatabaseService {
           savedCount = data.length;
         } else {
           console.error('❌ Fallback save also failed:', error);
-          errors.push(`ConversationMemory fallback: ${error?.message || 'Unknown error'}`);
+          errors.push(`ConversationalMemory fallback: ${error?.message || 'Unknown error'}`);
         }
       }
 
@@ -481,17 +551,17 @@ export class DatabaseService {
         }
       }
       
-      // If no dedicated contacts table found, check ConversationMemory for contact entries
-      console.log('📝 No contacts table found, checking ConversationMemory for imported contacts...');
+      // If no dedicated contacts table found, check ConversationalMemory for contact entries
+      console.log('📝 No contacts table found, checking ConversationalMemory for imported contacts...');
       try {
         const { data, error } = await supabase
-          .from('ConversationMemory')
+          .from('ConversationalMemory')
           .select('*')
           .like('sender message', '%Contact imported:%')
           .order('created_at', { ascending: false });
         
         if (!error && data) {
-          console.log('✅ Found contact entries in ConversationMemory:', data);
+          console.log('✅ Found contact entries in ConversationalMemory:', data);
           return data.map((entry, index) => {
             // Parse contact info from message
             const message = entry['sender message'] || '';
@@ -508,7 +578,7 @@ export class DatabaseService {
           });
         }
       } catch (convError) {
-        console.log('Error checking ConversationMemory:', convError);
+        console.log('Error checking ConversationalMemory:', convError);
       }
       
       console.warn('No contacts found in any table, returning empty array');
@@ -561,18 +631,18 @@ export class DatabaseService {
       }
       
       if (!deleteSuccess) {
-        // If no table worked, try to delete from ConversationMemory as fallback
-        console.log('📝 Fallback: Trying to delete contact entry from ConversationMemory...');
+        // If no table worked, try to delete from ConversationalMemory as fallback
+        console.log('📝 Fallback: Trying to delete contact entry from ConversationalMemory...');
         
         const { data, error } = await supabase
-          .from('ConversationMemory')
+          .from('ConversationalMemory')
           .delete()
           .eq('sender', contactPhone)
           .like('sender message', '%Contact imported:%')
           .select();
         
         if (!error && data && data.length > 0) {
-          console.log('✅ Contact entry deleted from ConversationMemory:', data);
+          console.log('✅ Contact entry deleted from ConversationalMemory:', data);
           deleteSuccess = true;
         }
       }

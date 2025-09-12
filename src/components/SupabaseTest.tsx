@@ -15,7 +15,7 @@ const SupabaseTest: React.FC = () => {
       console.log('Testing Supabase connection...');
       
       // Try different table name variations
-      const tableNames = ['ConversationMemory', 'conversationmemory', 'conversation_memory'];
+      const tableNames = ['ConversationalMemory', 'ConversationalMemory', 'conversation_memory'];
       let foundData = false;
       
       for (const tableName of tableNames) {
@@ -53,8 +53,8 @@ const SupabaseTest: React.FC = () => {
           .limit(1);
           
         if (healthError && healthError.code === 'PGRST116') {
-          setConnectionStatus('✅ Connected to Supabase, but ConversationMemory table not found');
-          setError('Table "ConversationMemory" does not exist. Please create it using the database-setup.sql script.');
+          setConnectionStatus('✅ Connected to Supabase, but ConversationalMemory table not found');
+          setError('Table "ConversationalMemory" does not exist. Please create it using the database-setup.sql script.');
         } else {
           setConnectionStatus('✅ Connected but no data found');
           setError('Connected to Supabase but no conversation data found. Make sure the table exists and has data.');
@@ -93,7 +93,7 @@ const SupabaseTest: React.FC = () => {
 
       <div>
         <h3 className="text-base sm:text-lg font-semibold mb-2">
-          Data from ConversationMemory ({tableData.length} records):
+          Data from ConversationalMemory ({tableData.length} records):
         </h3>
         
         {tableData.length === 0 ? (

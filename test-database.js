@@ -8,7 +8,7 @@ async function testDatabaseConnection() {
     // Test 1: Read access
     console.log('📖 Testing read access...');
     const { data: readData, error: readError } = await supabase
-      .from('ConversationMemory')
+      .from('ConversationalMemory')
       .select('*')
       .limit(1);
     
@@ -28,7 +28,7 @@ async function testDatabaseConnection() {
     };
     
     const { data: insertData, error: insertError } = await supabase
-      .from('ConversationMemory')
+      .from('ConversationalMemory')
       .insert([testMessage])
       .select();
     

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Customer, Message } from '../types'
 import { DatabaseService } from '../services/database'
+import { supabase } from '../lib/supabase'
 
 interface UseConversationsReturn {
   customers: Customer[]
@@ -51,7 +52,31 @@ export const useConversations = (): UseConversationsReturn => {
   }, [])
 
   const refreshData = async () => {
-    await fetchData()
+    console.log('🔄 Manually refreshing conversation data...')
+    setLoading(true)
+    
+    try {
+      // First verify we can access the database
+      const { data, error } = await supabase
+        .from('ConversationalMemory')
+        .select('count()')
+      
+      if (error) {
+        console.error('❌ Database access error:', error)
+        setError(`Database access error: ${error.message}`)
+        return
+      }
+      
+      console.log('✅ Database connection successful, found count:', data)
+      
+      // Now fetch the full data
+      await fetchData()
+    } catch (err) {
+      console.error('❌ Refresh error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to refresh data')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return {

@@ -21,7 +21,7 @@ A WhatsApp Business messaging frontend that integrates with Supabase for message
    Create a `.env` file with:
    ```bash
    # Supabase Configuration
-   VITE_SUPABASE_URL=https://cjcjvlcvcgklmuikvnkr.supabase.co
+   VITE_SUPABASE_URL=https://tvmuzvxrfxuwmdrtzrch.supabase.co
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
    # n8n Webhook URL for sending WhatsApp messages
@@ -35,7 +35,7 @@ A WhatsApp Business messaging frontend that integrates with Supabase for message
 
 ## How it Works
 
-1. **Message Retrieval**: Messages are fetched from Supabase `ConversationMemory` table
+1. **Message Retrieval**: Messages are fetched from Supabase `ConversationalMemory` table
 2. **Message Display**: The frontend displays conversations in a WhatsApp-like interface
 3. **Message Sending**: When you send a message from the frontend:
    - Message content and recipient phone number are sent to the n8n webhook

@@ -1,8 +1,8 @@
 -- WhatsApp Business Portal - Database Setup Script
 -- Run this in your Supabase SQL Editor
 
--- 1. Create ConversationMemory table
-CREATE TABLE IF NOT EXISTS ConversationMemory (
+-- 1. Create ConversationalMemory table
+CREATE TABLE IF NOT EXISTS ConversationalMemory (
   id SERIAL PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   message TEXT NOT NULL,
@@ -18,19 +18,19 @@ CREATE TABLE IF NOT EXISTS n8n_chat_histories (
 );
 
 -- 3. Enable Row Level Security (recommended for production)
-ALTER TABLE ConversationMemory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ConversationalMemory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE n8n_chat_histories ENABLE ROW LEVEL SECURITY;
 
 -- 4. Create policies for read access
 -- Note: Adjust these policies based on your security requirements
-CREATE POLICY "Enable read access for all users" ON ConversationMemory
+CREATE POLICY "Enable read access for all users" ON ConversationalMemory
 FOR SELECT USING (true);
 
 CREATE POLICY "Enable read access for all users" ON n8n_chat_histories
 FOR SELECT USING (true);
 
 -- 5. Insert sample data for testing
-INSERT INTO ConversationMemory (message, recipient, sender) VALUES
+INSERT INTO ConversationalMemory (message, recipient, sender) VALUES
 ('Hello, I need help with my order', 'business_number', '+91 98765 43210'),
 ('Hi! I''d be happy to help you with your order. Can you please provide your order number?', '+91 98765 43210', 'business_number'),
 ('My order number is #12345', 'business_number', '+91 98765 43210'),
@@ -61,14 +61,14 @@ INSERT INTO ConversationMemory (message, recipient, sender) VALUES
 ('Perfect! I''ve reserved the blue WH-1000XM4 for you. Please bring a valid ID when you come to collect it.', '+91 54321 09876', 'business_number');
 
 -- 6. Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_conversation_memory_sender ON ConversationMemory(sender);
-CREATE INDEX IF NOT EXISTS idx_conversation_memory_recipient ON ConversationMemory(recipient);
-CREATE INDEX IF NOT EXISTS idx_conversation_memory_created_at ON ConversationMemory(created_at);
+CREATE INDEX IF NOT EXISTS idx_conversation_memory_sender ON ConversationalMemory(sender);
+CREATE INDEX IF NOT EXISTS idx_conversation_memory_recipient ON ConversationalMemory(recipient);
+CREATE INDEX IF NOT EXISTS idx_conversation_memory_created_at ON ConversationalMemory(created_at);
 
 -- 7. Verify the setup
-SELECT COUNT(*) as total_messages FROM ConversationMemory;
-SELECT DISTINCT sender as unique_senders FROM ConversationMemory WHERE sender != 'business_number';
-SELECT COUNT(DISTINCT sender) as unique_customers FROM ConversationMemory WHERE sender != 'business_number';
+SELECT COUNT(*) as total_messages FROM ConversationalMemory;
+SELECT DISTINCT sender as unique_senders FROM ConversationalMemory WHERE sender != 'business_number';
+SELECT COUNT(DISTINCT sender) as unique_customers FROM ConversationalMemory WHERE sender != 'business_number';
 
 -- Success message
 SELECT 'Database setup completed successfully! 🎉' as status;

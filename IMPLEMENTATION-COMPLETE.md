@@ -108,7 +108,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 The app expects this table structure in Supabase:
 
 ```sql
-ConversationMemory (
+ConversationalMemory (
   id SERIAL PRIMARY KEY,
   created_at TIMESTAMPTZ,
   message TEXT,
@@ -159,7 +159,7 @@ const subscription = supabase
   .on('postgres_changes', {
     event: '*',
     schema: 'public',
-    table: 'ConversationMemory'
+    table: 'ConversationalMemory'
   }, () => {
     fetchData();
   })
@@ -189,7 +189,7 @@ const subscription = supabase
    - Test refresh functionality
 
 3. **Connect Your Automation:**
-   - Ensure your n8n automation writes to `ConversationMemory`
+   - Ensure your n8n automation writes to `ConversationalMemory`
    - Verify sender/recipient format matches
 
 4. **Deploy (Optional):**
