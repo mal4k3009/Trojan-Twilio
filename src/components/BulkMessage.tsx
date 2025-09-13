@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Users, CheckSquare, Square, Loader2, AlertCircle, CheckCircle, Phone, ArrowRight } from 'lucide-react';
+import { Send, Users, CheckSquare, Square, Loader2, AlertCircle, CheckCircle, Phone, ArrowRight, FileText } from 'lucide-react';
 import { Customer } from '../types';
 import { DatabaseService } from '../services/database';
 import { WhatsAppService } from '../services/whatsapp';
@@ -21,6 +21,13 @@ const BulkMessage: React.FC<BulkMessageProps> = ({ customers, onNavigateToContac
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState<BulkResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  // Predefined template message
+  const templateMessage = "Hello, My Name is Maulik. I am from Aclic. Here we are providing, here we grow your business through Meta Ads.";
+
+  const handleTemplateInsert = () => {
+    setMessage(templateMessage);
+  };
 
   const handleCustomerToggle = (phone: string) => {
     const newSelected = new Set(selectedCustomers);
@@ -164,7 +171,20 @@ const BulkMessage: React.FC<BulkMessageProps> = ({ customers, onNavigateToContac
         {/* Message Composition */}
         <div className="lg:w-1/2 flex flex-col">
           <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Compose Message</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Compose Message</h3>
+              <button
+                onClick={handleTemplateInsert}
+                disabled={isSending}
+                className="flex items-center space-x-2 px-3 py-1.5 text-xs sm:text-sm 
+                  bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 
+                  rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Use Template</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 flex flex-col">
